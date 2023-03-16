@@ -9,6 +9,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import deque
+import copy
 
 def swap_cols(arr, frm, to):
     arr[:,[frm, to]] = arr[:,[to, frm]]
@@ -22,7 +23,7 @@ def findIslands(board,indices):
         floors = np.argwhere(board == index)
         swap_cols(floors, 0, 1)
         notVisited.update(map(tuple, floors))
-    islands = []
+    rooms = []
     while len(notVisited)>0:
         start = list(notVisited)[0]
         queue.append(start)
@@ -59,15 +60,21 @@ def findIslands(board,indices):
                 notVisited.discard(right)
                 queue.append(right)
                 island.append(right)
-        islands.append(island)
+        rooms.append(island)
 
-    return islands
+    return rooms
 
+chestID = 0
+monsterID = 6
+trapID = 12
+wallID = 16
+floorID = 4
+door1ID = 2
+door2ID = 3
 
-
-def calc_expressive_range(path):
+def calc_expressive_range(path, smoothed):
     leniencies = []
-    openness = []
+    emptiness = []
     connectedness = []
     
     for level in os.listdir(path):
@@ -88,7 +95,36 @@ def calc_expressive_range(path):
             data.append(list(map(int,line.split())))
             #print(line)
         
-        test = f.readline()
+        
+        #### evaluate training data
+        training_data = copy.deepcopy(data)
+        training_data = np.array(training_data)
+        
+        chests = 0
+        monsters = 0
+        traps = 0
+        
+        for row in training_data:
+            for cell in row:
+                if cell == chestID: chests+=1
+                if cell == monsterID: monsters+=1
+                if cell == trapID: traps+=1
+        
+        total = chests + monsters + traps
+        training_leniency = (chests - monsters - traps)/total
+        
+        walls = np.count_nonzero(np.logical_and(training_data !=4, training_data!=-1))
+        floors = np.count_nonzero(training_data == 4)
+        training_emptiness = floors/(walls+floors)
+        
+
+        rooms = findIslands(training_data, {floorID})
+        connected_rooms = findIslands(training_data, {floorID,door1ID,door2ID})
+        training_connectedness = len(connected_rooms)/len(rooms)
+        
+        #####
+        f.readline()
+        
         
         #AI objects
         for y in range(height):
@@ -97,12 +133,7 @@ def calc_expressive_range(path):
                 if int(line[x])>-1 : data[y][x] = int(line[x])
             
         data = np.array(data)    
-        #print(data)
         
-        
-        chestID = 0
-        monsterID = 6
-        trapID = 12
         
         #leniency
         chests = 0
@@ -115,23 +146,17 @@ def calc_expressive_range(path):
                 if cell == monsterID: monsters+=1
                 if cell == trapID: traps+=1
     
-        #print("chests: " + str(chests))
-        #print("monsters: " + str(monsters))
-        #print("traps:" + str(traps))
+       
         
         total = chests + monsters + traps
         leniency = chests - monsters - traps
-        #print("leniency" + str(leniency))
         leniencies.append(leniency/total)
         
-        #openness
-        wallID = 16
-        floorID = 4
-        door1ID = 2
-        door2ID = 3
-        walls = np.count_nonzero(data == 16)
+        #emptiness
+        
+        walls = np.count_nonzero(np.logical_and(data !=4, data!=-1))
         floors = np.count_nonzero(data == 4)
-        openness.append(floors/(walls+floors))
+        emptiness.append(floors/(walls+floors))
         #connectedness
         rooms = findIslands(data, {floorID})
         connected_rooms = findIslands(data, {floorID,door1ID,door2ID})
@@ -139,50 +164,53 @@ def calc_expressive_range(path):
         #print(len(connected_rooms)/len(rooms))
         
     leniencies = np.array(leniencies)
-    #print(leniencies)
-    ratio = 2/(np.max(leniencies)-np.min(leniencies)) 
-    shift = (np.max(leniencies)+np.min(leniencies))/2 
-    #print(np.max(leniencies))
-    #print(np.min(leniencies))
-    #print(ratio)
-    #print(shift)
-    #leniencies = (leniencies - shift)*ratio
-    #print(leniencies)
     
-    #shift = np.max(openness) - np.min(openness)
-    #print( (openness - np.min(openness))/shift)
+    postfix = " with Smoothing" if smoothed else " without Smoothing"
+    
     plt.hist(leniencies,range=[-1,1], bins= 50)
     plt.xlabel('leniency', fontsize=20)
     plt.title("")
+    plt.axvline(training_leniency, color='red', linestyle='dashed', linewidth=1)
     plt.show()
     
-    plt.hist(openness,range = [0,1],bins= 200)
-    plt.xlabel('openness', fontsize=20)
+    plt.hist(emptiness,range = [0,1],bins= 200)
+    plt.xlabel('emptiness', fontsize=20)
     plt.title("")
+    plt.axvline(training_emptiness, color='red', linestyle='dashed', linewidth=1)
     plt.show()
     
     plt.hist(connectedness, range = [0,1],bins= 50)
     plt.xlabel('connectedness', fontsize=20)
+    plt.axvline(training_connectedness, color='red', linestyle='dashed', linewidth=1)
     plt.title("")
     plt.show()
     
-    plt.hist2d(openness, connectedness, bins=(100, 100),range=[[0, 1], [0, 1]])
+    plt.hist2d(emptiness, connectedness, bins=(100, 100),range=[[0, 1], [0, 1]],vmin=0,vmax=10)
     plt.colorbar()
-    plt.xlabel('openness', fontsize=20)
-    plt.ylabel('connectedness', fontsize=20)
-    plt.title("expressive range")
+    plt.xlabel('Emptiness', fontsize=20)
+    plt.ylabel('Connectedness', fontsize=20)
+    plt.title("Expressive Range" + postfix)
+    plt.plot(training_emptiness,training_connectedness,marker='o',color='red')
     plt.show()
     
-    plt.hist2d(openness, leniencies, bins=(100, 100),range=[[0, 1], [-1, 1]])
+    plt.hist2d(emptiness, leniencies, bins=(100, 100),range=[[0, 1], [-1, 1]],vmin=0,vmax=10)
     plt.colorbar()
-    plt.xlabel('openness', fontsize=20)
-    plt.ylabel('leniency', fontsize=20)
-    plt.title("expressive range")
+    plt.xlabel('Emptiness', fontsize=20)
+    plt.ylabel('Leniency', fontsize=20)
+    plt.title("Expressive Range" + postfix)
+    plt.plot(training_emptiness,training_leniency,marker='o',color='red')
+
     plt.show()
     
-    
+    plt.hist2d(connectedness, leniencies, bins=(100, 100),range=[[0, 1], [-1, 1]],vmin=0,vmax=10)
+    plt.colorbar()
+    plt.xlabel('Connectedness', fontsize=20)
+    plt.ylabel('Leniency', fontsize=20)
+    plt.title("Expressive Range" + postfix)
+    plt.plot(training_connectedness,training_leniency,marker='o',color='red')
+    plt.show()
     
 path = 'Levels'
 path_smoothed = 'Levels_smoothing'
-calc_expressive_range(path)
-calc_expressive_range(path_smoothed)
+calc_expressive_range(path, False)
+calc_expressive_range(path_smoothed,True)
