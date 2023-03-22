@@ -76,6 +76,9 @@ def calc_expressive_range(path, smoothed):
     leniencies = []
     emptiness = []
     connectedness = []
+    average_island_sizes = []
+    biggest_island_sizes = []
+    smallest_island_sizes = []
     
     for level in os.listdir(path):
         print(level)
@@ -111,7 +114,9 @@ def calc_expressive_range(path, smoothed):
                 if cell == trapID: traps+=1
         
         total = chests + monsters + traps
-        training_leniency = (chests - monsters - traps)/total
+        training_leniency = 0
+        if total != 0:
+            training_leniency = (chests - monsters - traps)/total
         
         total_elements = np.count_nonzero(training_data!=-1)
         floors = np.count_nonzero(np.logical_and(training_data !=wallID, training_data!=-1))
@@ -122,7 +127,13 @@ def calc_expressive_range(path, smoothed):
         rooms = findIslands(training_data, {floorID,monsterID,chestID,trapID})
         connected_rooms = findIslands(training_data, {floorID,door1ID,door2ID,monsterID,chestID,trapID})
         training_connectedness = len(connected_rooms)
-        
+        island_sizes = []
+        for island in connected_rooms:
+            island_sizes.append(len(island))
+            
+        training_average_island_size = sum(island_sizes)/len(island_sizes)
+        training_biggest_island_size = max(island_sizes)
+
         #####
         f.readline()
         
@@ -165,60 +176,132 @@ def calc_expressive_range(path, smoothed):
         rooms = findIslands(data, {floorID,monsterID,chestID,trapID})
         connected_rooms = findIslands(data, {floorID,door1ID,door2ID,monsterID,chestID,trapID})
         connectedness.append(len(connected_rooms))
+        island_sizes = []
+        for island in connected_rooms:
+            island_sizes.append(len(island))
+            
+        average_island_size = sum(island_sizes)/len(island_sizes)
+        biggest_island_size = max(island_sizes)
+        biggest_island_sizes.append(biggest_island_size)
+        average_island_sizes.append(average_island_size)
         #print(len(connected_rooms)/len(rooms))
         
     leniencies = np.array(leniencies)
     
     postfix = " with Smoothing" if smoothed else " without Smoothing"
+    postfix2 = "Smoothing" if smoothed else " No Smoothing"
+
+    plt.rcParams["figure.dpi"] = 200
+    
     
     plt.hist(leniencies,range=[-1,1], bins= 50)
     plt.xlabel('Leniency', fontsize=20)
-    plt.title("")
+    #plt.title(postfix2)
     plt.axvline(training_leniency, color='red', linestyle='dashed', linewidth=1)
+    plt.ylabel('Number of Levels', fontsize=20)
+
     plt.show()
     
-    plt.hist(emptiness,range = [0,1],bins= 200)
-    plt.xlabel('Emptiness', fontsize=20)
-    plt.title("")
+    plt.hist(emptiness,range = [0,1],bins= 50)
+    plt.xlabel('Openness', fontsize=20)
+    #plt.title(postfix2)
     plt.axvline(training_emptiness, color='red', linestyle='dashed', linewidth=1)
+    plt.ylabel('Number of Levels', fontsize=20)
+
     plt.show()
     
     plt.hist(connectedness, range = [1,max(connectedness)],bins= max(connectedness))
     plt.xlabel('Number of Islands', fontsize=20)
     plt.xticks(np.array(range(1,max(connectedness))[0::2])-0.5, np.array(range(1,max(connectedness))[0::2]))
     #plt.locator_params(axis='x',integer=True)
-    plt.axvline(training_connectedness -0.5, color='red', linestyle='dashed', linewidth=1)
-    plt.title("")
+    #plt.axvline(training_connectedness -0.5, color='red', linestyle='dashed', linewidth=1)
+    plt.ylabel('Number of Levels', fontsize=20)
+
+    #plt.title(postfix2)
+    plt.show()
+    
+    average_island_sizes= np.array(average_island_sizes)
+    biggest_island_sizes = np.array(biggest_island_sizes)
+    
+    plt.hist(average_island_sizes/900, range = [0,1],bins= 50)
+    plt.xlabel('Average Island Size', fontsize=20)
+    plt.ylabel('Number of Levels', fontsize=20)
+
+    #plt.xticks(np.array(range(1,max(connectedness))[0::2])-0.5, np.array(range(1,max(connectedness))[0::2]))
+    #plt.locator_params(axis='x',integer=True)
+    #plt.axvline(training_connectedness -0.5, color='red', linestyle='dashed', linewidth=1)
+    #plt.title(postfix2)
+    plt.show()
+    
+    plt.hist(biggest_island_sizes/900, range = [0,1],bins= 50)
+    plt.xlabel('Biggest Island Size', fontsize=20)
+    plt.ylabel('Number of Levels', fontsize=20)
+
+    #plt.xticks(np.array(range(1,max(connectedness))[0::2])-0.5, np.array(range(1,max(connectedness))[0::2]))
+    #plt.locator_params(axis='x',integer=True)
+    #plt.axvline(training_connectedness -0.5, color='red', linestyle='dashed', linewidth=1)
+    #plt.title(postfix2)
     plt.show()
     
     plt.hist2d(connectedness,emptiness, bins=(max(connectedness),100),range=[[1, max(connectedness)],[0, 1]])
     plt.colorbar()
     plt.xticks(np.array(range(1,max(connectedness))[0::2])+0.5, np.array(range(1,max(connectedness))[0::2]))
-    plt.ylabel('Emptiness', fontsize=20)
+    plt.ylabel('Openness', fontsize=20)
     plt.xlabel('Number of Islands', fontsize=20)
-    plt.title("Expressive Range" + postfix)
+    #plt.title("Expressive Range" + postfix)
     plt.plot(training_connectedness + 0.5,training_emptiness,marker='o',color='red')
     plt.show()
     
-    plt.hist2d(emptiness, leniencies, bins=(100, 100),range=[[0, 1], [-1, 1]])
+    plt.hist2d(emptiness, leniencies, bins=(50, 50),range=[[0, 1], [-1, 1]])
     plt.colorbar()
-    plt.xlabel('Emptiness', fontsize=20)
+    plt.xlabel('Openness', fontsize=20)
     plt.ylabel('Leniency', fontsize=20)
-    plt.title("Expressive Range" + postfix)
+    #plt.title("Expressive Range" + postfix)
     plt.plot(training_emptiness,training_leniency,marker='o',color='red')
 
     plt.show()
     
-    plt.hist2d(connectedness, leniencies, bins=(max(connectedness), 100),range=[[1, max(connectedness)], [-1, 1]])
+    plt.hist2d(connectedness, leniencies, bins=(max(connectedness), 50),range=[[1, max(connectedness)], [-1, 1]])
     plt.colorbar()
     plt.xticks(np.array(range(1,max(connectedness))[0::2])+0.5, np.array(range(1,max(connectedness))[0::2]))
     plt.xlabel('Number of Islands', fontsize=20)
     plt.ylabel('Leniency', fontsize=20)
-    plt.title("Expressive Range" + postfix)
+    #plt.title("Expressive Range" + postfix)
     plt.plot(training_connectedness+0.5,training_leniency,marker='o',color='red')
     plt.show()
+    
+    
+    plt.hist2d(connectedness, average_island_sizes/900, bins=(max(connectedness), 100),range=[[1, max(connectedness)], [0,1]])
+    plt.colorbar()
+    plt.xticks(np.array(range(1,max(connectedness))[0::2])+0.5, np.array(range(1,max(connectedness))[0::2]))
+    plt.xlabel('Number of Islands', fontsize=20)
+    plt.ylabel('Average Island Size', fontsize=20)
+    #plt.title("Expressive Range" + postfix)
+    #plt.plot(training_connectedness+0.5,training_average_island_size/900,marker='o',color='red')
+    plt.show()
+    
+    plt.hist2d(connectedness, biggest_island_sizes/900, bins=(max(connectedness), 100),range=[[1, max(connectedness)], [0,1]])
+    plt.colorbar()
+    plt.xticks(np.array(range(1,max(connectedness))[0::2])+0.5, np.array(range(1,max(connectedness))[0::2]))
+    plt.xlabel('Number of Islands', fontsize=20)
+    plt.ylabel('Largest Island Size', fontsize=20)
+    #plt.title("Expressive Range" + postfix)
+    #plt.plot(training_connectedness+0.5,training_biggest_island_size/900,marker='o',color='red')
+    plt.show()
+    
+    plt.hist2d(average_island_sizes/900, biggest_island_sizes/900, bins=(50, 50),range=[[0,1], [0,1]])
+    plt.colorbar()
+    #plt.xticks(np.array(range(1,max(connectedness))[0::2])+0.5, np.array(range(1,max(connectedness))[0::2]))
+    plt.xlabel('Average Island Size', fontsize=20)
+    plt.ylabel('Largest Island Size', fontsize=20)
+    #plt.title("Expressive Range" + postfix)
+    #plt.plot(training_connectedness+0.5,training_biggest_island_size/900,marker='o',color='red')
+    plt.show()
+    
     
 path = 'Levels'
 path_smoothed = 'Levels_smoothing'
 calc_expressive_range(path, False)
-calc_expressive_range(path_smoothed,True)
+#calc_expressive_range('Levels_singleSeed', False)
+
+#calc_expressive_range(path_smoothed,True)
