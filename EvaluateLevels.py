@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import deque
 import copy
+from statistics import mean
 
 def swap_cols(arr, frm, to):
     arr[:,[frm, to]] = arr[:,[to, frm]]
@@ -298,6 +299,11 @@ def calc_expressive_range(path, smoothed):
     #plt.plot(training_connectedness+0.5,training_biggest_island_size/900,marker='o',color='red')
     plt.show()
     
+    print(str(mean(leniencies)))
+    print(str(mean(emptiness)))
+    print(str(mean(connectedness)))
+    print(str(mean(average_island_sizes)/900))
+    print(str(mean(biggest_island_sizes)/900))
     
 path = 'Levels'
 path_smoothed = 'Levels_smoothing'

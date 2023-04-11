@@ -27,7 +27,7 @@ questions = ['How much experience do you have with Unity? [1 = I never used it b
              'Which scene did you prefer working with when using the tool?',
              'How well does the tool integrate into the engine workflow? [1 = Does not integrate well; 5 = Fits very well]',
              'Which team size do you think could benefit from the tool the most? [1 = Small; 5 = Large]',
-             'How much experience with the engine do you think is needed to use the editor? [1 = No experience; 5 = A lot of experience]',
+             'How much experience with the engine do you think is needed to use the editor?\n[1 = No experience; 5 = A lot of experience]',
              'Could you see yourself using the tool for your own projects? [1 = No; 5 = Yes]'
 ]
 q1 = [4, 4, 2, 1, 1, 5, 4]
@@ -84,7 +84,9 @@ for i in range(len(groups)):
     setColors(b, colorList)
     plt.yticks([1, 2, 3, 4, 5])
     plt.hlines([1, 2, 3, 4, 5], 0, len(answers)+1, linestyles='dotted', colors=['gray'])
-    plt.xticks([], [])
+    #plt.xticks([], [])
+    plt.ylabel('Rating')
+    plt.xlabel('Question')
     plt.title(titles[i])
     for j, line in enumerate(b['means']):
         x, y = line.get_xydata()[0]
@@ -92,11 +94,13 @@ for i in range(len(groups)):
         plt.annotate(text, xy=(x+0.05, y))
         
     plt.legend(b["boxes"], questions, loc='lower center',
-               bbox_to_anchor=(.5, -0.4) if i!=0 else (.5, -0.2))
+               bbox_to_anchor=(.5, -0.55) if i!=0 else (.5, -0.35))
     # plt.xticks([1,2],labels = [questions[0],'q2'])
     plt.show()
 counts = [q11.count('Underground Dungeon'),q11.count('Forest Temple')]
 plt.bar([1,2],[counts[1],counts[0]],color=[colorList[0],colorList[1]])
 plt.xticks([1,2],['Forest Temple','Underground Dungeon'])
 plt.yticks(range(max(counts)+1))
+plt.ylabel('Number of Votes')
+plt.title('Which scene did you prefer working with when using the tool?')
 plt.show()
