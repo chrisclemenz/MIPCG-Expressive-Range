@@ -79,6 +79,7 @@ titles = ['General Questions','Designer Control Questions', 'Design Process Ques
 for i in range(len(groups)):
     answers = groups[i]
     means = np.array(answers).mean(axis=1)
+    standard_deviation = np.array(answers).std(axis=1)
     questions = groupsQuestions[i]
     b = plt.boxplot(answers, patch_artist = True,showmeans=True,meanprops=meanpointprops,medianprops=medianprops)
     setColors(b, colorList)
@@ -92,6 +93,8 @@ for i in range(len(groups)):
         x, y = line.get_xydata()[0]
         text = ' μ={:.2f}'.format(means[j])
         plt.annotate(text, xy=(x+0.05, y))
+        text2 = ' σ={:.2f}'.format(standard_deviation[j])
+        plt.annotate(text2,xy=(x+0.05, y-0.3))
         
     plt.legend(b["boxes"], questions, loc='lower center',
                bbox_to_anchor=(.5, -0.55) if i!=0 else (.5, -0.35))
